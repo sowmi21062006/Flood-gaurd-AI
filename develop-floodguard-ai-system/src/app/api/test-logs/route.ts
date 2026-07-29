@@ -7,10 +7,10 @@ export async function GET() {
     const wf = wfSnap.docs[0]?.data();
     
     const agentsSnap = await adminDb.collection('agents').get();
-    const agents = agentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const agents = agentsSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
 
     const logsSnap = await adminDb.collection('workflowLogs').orderBy('timestamp', 'desc').limit(10).get();
-    const logs = logsSnap.docs.map(d => d.data());
+    const logs = logsSnap.docs.map((d: any) => d.data());
 
     return NextResponse.json({ wf, agents, logs });
   } catch (e: any) {

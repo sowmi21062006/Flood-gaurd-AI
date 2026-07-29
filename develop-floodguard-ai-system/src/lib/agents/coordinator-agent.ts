@@ -193,17 +193,17 @@ export class SystemCoordinatorAgent {
         return await this.hydrologicalAgent.predict();
       });
 
-      // 2. Geospatial Mapping
-      context.map = await this.runAgentWithProgress('mapping', 'Geospatial Mapping', async () => {
-        return await this.mappingAgent.generateFloodMap('pred_live', context.hydro?.riverLevel || 4.5, context.hydro?.rainfall || 50);
-      });
-
-      // 3. Flood Prediction (Explanation)
+      // 2. Flood Prediction (Explanation)
       context.prediction = await this.runAgentWithProgress('prediction', 'Flood Prediction', async () => {
         return await generateAIResponse({
           systemPrompt: 'You are an AI Flood Predictor. Explain the probability of flooding based on current data.',
           userPrompt: `Current Risk Score: ${context.hydro?.riskScore}. Severity: ${context.hydro?.severity}. Explain the probability briefly.`
         });
+      });
+
+      // 3. Geospatial Mapping
+      context.map = await this.runAgentWithProgress('mapping', 'Geospatial Mapping', async () => {
+        return await this.mappingAgent.generateFloodMap('pred_live', context.hydro?.riverLevel || 4.5, context.hydro?.rainfall || 50);
       });
 
       // 4. Evacuation Routing
@@ -270,10 +270,10 @@ export class SystemCoordinatorAgent {
     try {
       if (agentId === 'hydrological') {
         await this.runAgentWithProgress('hydrological', 'Hydrological Analysis', async () => this.hydrologicalAgent.predict());
-      } else if (agentId === 'mapping') {
-        await this.runAgentWithProgress('mapping', 'Geospatial Mapping', async () => this.mappingAgent.generateFloodMap('test', 4.5, 50));
       } else if (agentId === 'prediction') {
         await this.runAgentWithProgress('prediction', 'Flood Prediction', async () => generateAIResponse({ systemPrompt: 'Predict flood', userPrompt: 'Analyze.' }));
+      } else if (agentId === 'mapping') {
+        await this.runAgentWithProgress('mapping', 'Geospatial Mapping', async () => this.mappingAgent.generateFloodMap('test', 4.5, 50));
       } else if (agentId === 'routing') {
         await this.runAgentWithProgress('routing', 'Evacuation Routing', async () => this.routingAgent.findSafeRoute(12.9716, 77.5946, []));
       } else if (agentId === 'alert') {

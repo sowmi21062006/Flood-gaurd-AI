@@ -217,13 +217,13 @@ Flood Probability: ${simulationState.floodProbability}%`;
         <div className="bg-white dark:bg-gray-800/50 rounded-xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm transition-colors">
           <h3 className="text-sm font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-5">AI Agent Health</h3>
           <div className="space-y-3">
-            {['hydrological', 'mapping', 'routing', 'alert', 'coordinator'].map((agent) => {
+            {['hydrological', 'prediction', 'mapping', 'routing', 'alert', 'coordinator'].map((agent) => {
               const isHealthy = true;
               return (
                 <div key={agent} className="flex justify-between items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize flex items-center">
                     <Cpu size={14} className="mr-2 text-gray-400 dark:text-gray-500" />
-                    {agent} Agent
+                    {agent === 'coordinator' ? 'coordinator' : agent} Agent
                   </span>
                   <div className="flex items-center space-x-2">
                     <span className={`text-xs ${isHealthy ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>

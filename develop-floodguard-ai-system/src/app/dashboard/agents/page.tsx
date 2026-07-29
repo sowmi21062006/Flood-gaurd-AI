@@ -21,8 +21,8 @@ interface AgentState {
 
 const defaultAgents: AgentState[] = [
   { id: 'hydrological', name: 'Hydrological Analysis', status: 'IDLE', progress: 0, executionTime: 0, confidence: 0, currentTask: 'Waiting', lastRun: '', icon: Activity, desc: 'Ingests and processes real-time sensor data.' },
-  { id: 'mapping', name: 'Geospatial Mapping', status: 'IDLE', progress: 0, executionTime: 0, confidence: 0, currentTask: 'Waiting', lastRun: '', icon: Database, desc: 'Generates flood inundation polygons and zones.' },
   { id: 'prediction', name: 'Flood Prediction', status: 'IDLE', progress: 0, executionTime: 0, confidence: 0, currentTask: 'Waiting', lastRun: '', icon: BarChart3, desc: 'Calculates probability and severity using ML models.' },
+  { id: 'mapping', name: 'Geospatial Mapping', status: 'IDLE', progress: 0, executionTime: 0, confidence: 0, currentTask: 'Waiting', lastRun: '', icon: Database, desc: 'Generates flood inundation polygons and zones.' },
   { id: 'routing', name: 'Evacuation Routing', status: 'IDLE', progress: 0, executionTime: 0, confidence: 0, currentTask: 'Waiting', lastRun: '', icon: Navigation, desc: 'Calculates dynamic A* safe routes avoiding hazard areas.' },
   { id: 'alert', name: 'Emergency Alerts', status: 'IDLE', progress: 0, executionTime: 0, confidence: 0, currentTask: 'Waiting', lastRun: '', icon: AlertCircle, desc: 'Drafts and broadcasts multilingual SMS/Email warnings.' },
   { id: 'summary', name: 'AI Summary', status: 'IDLE', progress: 0, executionTime: 0, confidence: 0, currentTask: 'Waiting', lastRun: '', icon: FileText, desc: 'Generates executive summary of the entire response.' },
