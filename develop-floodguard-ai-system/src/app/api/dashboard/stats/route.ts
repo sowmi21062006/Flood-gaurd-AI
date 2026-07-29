@@ -15,10 +15,12 @@ export async function GET() {
     const getLatestSensor = async (type: string) => {
       const snap = await adminDb.collection('sensor_data')
         .where('sensorType', '==', type)
-        .orderBy('timestamp', 'desc')
-        .limit(1)
         .get();
-      return snap.empty ? null : snap.docs[0].data();
+      if (snap.empty) return null;
+      const sorted = snap.docs
+        .map((d: any) => d.data())
+        .sort((a: any, b: any) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+      return sorted[0];
     };
 
     const latestRiverLevel = await getLatestSensor('river_level');
@@ -29,12 +31,14 @@ export async function GET() {
     const oneHourAgo = new Date(Date.now() - 3600 * 1000).toISOString();
     const rainfallSnapshot = await adminDb.collection('sensor_data')
       .where('sensorType', '==', 'rainfall')
-      .where('timestamp', '>', oneHourAgo)
       .get();
     
     let rainfallSumTotal = 0;
     rainfallSnapshot.forEach((doc: any) => {
-      rainfallSumTotal += doc.data().value || 0;
+      const data = doc.data();
+      if (data.timestamp > oneHourAgo) {
+        rainfallSumTotal += data.value || 0;
+      }
     });
 
     // Get alert statistics

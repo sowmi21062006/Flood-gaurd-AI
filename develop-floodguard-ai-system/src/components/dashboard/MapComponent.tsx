@@ -1,14 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet/dist/leaflet.css';
-import { db } from '@/lib/firebase/config';
-import { collection, onSnapshot, query, where, limit } from 'firebase/firestore';
 
-// Define custom icons using Tailwind/HTML
+// Custom icons
 const createCustomIcon = (color: string, innerHtml: string) => {
   return L.divIcon({
     className: 'custom-leaflet-icon',
@@ -35,198 +32,170 @@ const createCustomIcon = (color: string, innerHtml: string) => {
   });
 };
 
-const shelterIcon = createCustomIcon('#3b82f6', '🏠'); // Blue
-const sensorIcon = createCustomIcon('#6366f1', '📡'); // Indigo
-const locationIcon = createCustomIcon('#22c55e', '📍'); // Green
+const userIcon = createCustomIcon('#3b82f6', '📍');
+const shelterIcon = createCustomIcon('#22c55e', '🏥');
+const dangerIcon = createCustomIcon('#ef4444', '🚨');
 
-// Mock Polygons for Flood Zones around Bangalore
-const severeFloodZone: [number, number][] = [
-  [12.98, 77.58],
-  [12.99, 77.60],
-  [12.97, 77.61],
-  [12.96, 77.59],
-];
-
-const warningFloodZone: [number, number][] = [
-  [12.95, 77.57],
-  [12.96, 77.62],
-  [12.93, 77.61],
-  [12.92, 77.58],
-];
-
-const safeRoute: [number, number][] = [
-  [12.9716, 77.5946],
-  [12.9600, 77.5800],
-  [12.9254, 77.5971], // Routes to Jayanagar Shelter
-];
-
-// Helper component to recenter map
-function RecenterAutomatically({ lat, lng }: { lat: number, lng: number }) {
+// Helper to recenter map
+function RecenterAutomatically({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView([lat, lng]);
+    map.setView([lat, lng], 14);
   }, [lat, lng, map]);
   return null;
 }
 
-export default function MapComponent({ isSimulating, globalTick = 0 }: { isSimulating: boolean; globalTick?: number }) {
-  const [shelters, setShelters] = useState<any[]>([]);
-  const [sensors, setSensors] = useState<any[]>([]);
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-
-  // Fetch real-time data using Firestore onSnapshot
-  useEffect(() => {
-    // 1. Listen to shelters
-    const sheltersQuery = query(collection(db, 'shelters'));
-    const unsubscribeShelters = onSnapshot(sheltersQuery, (snapshot) => {
-      const updatedShelters = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setShelters(updatedShelters);
-    }, (error) => {
-      console.error('Error listening to shelters:', error);
-    });
-
-    // 2. Listen to sensors
-    const sensorsQuery = query(
-      collection(db, 'sensor_data'),
-      where('sensorType', '==', 'river_level'),
-      limit(50)
-    );
-    const unsubscribeSensors = onSnapshot(sensorsQuery, (snapshot) => {
-      const updatedSensors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSensors(updatedSensors);
-    }, (error) => {
-      console.error('Error listening to sensors:', error);
-    });
-
-    // We can also listen to flooded_roads for dynamic polygons (simulated logic omitted for brevity)
-
-    return () => {
-      unsubscribeShelters();
-      unsubscribeSensors();
-    };
-  }, []);
-
-  // Geolocation
-  useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation([position.coords.latitude, position.coords.longitude]);
-        },
-        (error) => {
-          console.warn("Geolocation access denied or unavailable", error);
-        }
-      );
-    }
-  }, []);
-
-  // Simulation Logic
-  const [simulationStep, setSimulationStep] = useState(globalTick); // Synchronize internal step with globalTick
-  useEffect(() => {
-    setSimulationStep(globalTick);
-  }, [globalTick]);
-
-  // Dynamic zones based on simulation
-  const centerLat = 12.975;
-  const centerLng = 77.595;
-  
-  const warnRadius = isSimulating ? 0.01 + (simulationStep * 0.005) : 0.02;
-  const sevRadius = isSimulating ? (simulationStep > 2 ? 0.005 + ((simulationStep - 2) * 0.004) : 0) : 0.01;
-
-  const generateCirclePolygon = (lat: number, lng: number, radius: number): [number, number][] => {
-    if (radius <= 0) return [];
-    const points: [number, number][] = [];
-    for (let i = 0; i < 12; i++) {
-      const angle = (i * 30) * (Math.PI / 180);
-      points.push([lat + Math.cos(angle) * radius, lng + Math.sin(angle) * radius * 1.1]);
-    }
-    return points;
+export interface SafetyMapData {
+  userLocation: { lat: number; lng: number };
+  dangerZone: {
+    center: { lat: number; lng: number };
+    radiusMeters: number;
+    polygon: [number, number][];
   };
+  nearestShelter: {
+    name: string;
+    lat: number;
+    lng: number;
+    capacity: number;
+  };
+  safeRoute: [number, number][];
+  riskLevel: string;
+  riskScore: number;
+}
 
-  const dynamicWarningZone = isSimulating && simulationStep > 0
-    ? generateCirclePolygon(centerLat, centerLng, warnRadius) 
-    : warningFloodZone;
+interface MapComponentProps {
+  safetyData?: SafetyMapData | null;
+}
 
-  const dynamicSevereZone = isSimulating && simulationStep > 2
-    ? generateCirclePolygon(centerLat, centerLng, sevRadius) 
-    : (isSimulating ? [] : severeFloodZone);
+export default function MapComponent({ safetyData }: MapComponentProps) {
+  const defaultCenter: [number, number] = safetyData
+    ? [safetyData.userLocation.lat, safetyData.userLocation.lng]
+    : [13.0827, 80.2707]; // Default Chennai
 
-  const dynamicSafeRoute = (isSimulating && simulationStep > 5) 
-    ? [
-        [12.9716, 77.5946],
-        [12.9800, 77.5700], // Detour west to avoid spreading flood
-        [12.9500, 77.5600],
-        [12.9254, 77.5971], 
-      ] as [number, number][]
-    : safeRoute;
+  const showDangerZone = safetyData && (safetyData.riskLevel === 'HIGH' || safetyData.riskLevel === 'CRITICAL');
 
   return (
     <div className="w-full h-full relative rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm z-0">
-      <MapContainer 
-        center={[20.5937, 78.9629]} // Default India
-        zoom={5} 
-        scrollWheelZoom={true} 
+      <MapContainer
+        center={defaultCenter}
+        zoom={safetyData ? 14 : 5}
+        scrollWheelZoom={true}
         className="w-full h-full z-0"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          className="map-tiles"
         />
 
-        {userLocation && (
+        {safetyData && (
           <>
-            <Marker position={userLocation} icon={locationIcon}>
+            <RecenterAutomatically lat={safetyData.userLocation.lat} lng={safetyData.userLocation.lng} />
+
+            {/* User Location Marker */}
+            <Marker position={[safetyData.userLocation.lat, safetyData.userLocation.lng]} icon={userIcon}>
               <Popup>
-                <div className="text-sm font-semibold text-gray-900">Your Location</div>
+                <div className="p-1">
+                  <h3 className="font-bold text-blue-600">📍 Your Location</h3>
+                  <p className="text-xs text-gray-500">Lat: {safetyData.userLocation.lat.toFixed(4)}, Lng: {safetyData.userLocation.lng.toFixed(4)}</p>
+                </div>
               </Popup>
             </Marker>
-            {!isSimulating && <RecenterAutomatically lat={userLocation[0]} lng={userLocation[1]} />}
+
+            {/* Danger Zone Circle */}
+            {showDangerZone && (
+              <Circle
+                center={[safetyData.dangerZone.center.lat, safetyData.dangerZone.center.lng]}
+                radius={safetyData.dangerZone.radiusMeters}
+                pathOptions={{
+                  color: safetyData.riskLevel === 'CRITICAL' ? '#dc2626' : '#f97316',
+                  fillColor: safetyData.riskLevel === 'CRITICAL' ? '#dc2626' : '#f97316',
+                  fillOpacity: 0.25,
+                  weight: 2,
+                }}
+              >
+                <Popup>
+                  <div className="p-1">
+                    <span className="font-bold text-red-600 block">⚠️ Danger Zone</span>
+                    <span className="text-xs text-gray-500">Risk: {safetyData.riskLevel} ({safetyData.riskScore}/100)</span>
+                  </div>
+                </Popup>
+              </Circle>
+            )}
+
+            {/* Danger Zone Polygon */}
+            {showDangerZone && safetyData.dangerZone.polygon.length > 0 && (
+              <Polygon
+                positions={safetyData.dangerZone.polygon}
+                pathOptions={{
+                  color: safetyData.riskLevel === 'CRITICAL' ? 'red' : 'orange',
+                  fillColor: safetyData.riskLevel === 'CRITICAL' ? 'red' : 'orange',
+                  fillOpacity: 0.2,
+                  weight: 2,
+                  dashArray: '5, 10',
+                }}
+              >
+                <Popup>
+                  <span className="font-bold text-red-600">Flood Risk Boundary</span>
+                </Popup>
+              </Polygon>
+            )}
+
+            {/* Danger Center */}
+            {showDangerZone && (
+              <Marker
+                position={[safetyData.dangerZone.center.lat, safetyData.dangerZone.center.lng]}
+                icon={dangerIcon}
+              >
+                <Popup>
+                  <div className="p-1">
+                    <h3 className="font-bold text-red-600">🚨 Danger Center</h3>
+                    <p className="text-xs text-gray-700">Risk Score: {safetyData.riskScore}/100</p>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
+
+            {/* Nearest Shelter Marker */}
+            <Marker position={[safetyData.nearestShelter.lat, safetyData.nearestShelter.lng]} icon={shelterIcon}>
+              <Popup>
+                <div className="p-1">
+                  <h3 className="font-bold text-green-600">🏥 {safetyData.nearestShelter.name}</h3>
+                  <p className="text-xs text-gray-500">Capacity: {safetyData.nearestShelter.capacity} people</p>
+                </div>
+              </Popup>
+            </Marker>
+
+            {/* Safe Route Polyline */}
+            <Polyline
+              positions={safetyData.safeRoute}
+              pathOptions={{
+                color: '#22c55e',
+                weight: 4,
+                dashArray: '8, 12',
+                opacity: 0.8,
+              }}
+            >
+              <Popup>
+                <span className="font-bold text-green-600">🛤️ Safe Evacuation Route (Demo)</span>
+              </Popup>
+            </Polyline>
           </>
         )}
 
-        {isSimulating && <RecenterAutomatically lat={12.975} lng={77.595} />}
-
-        {/* Severe Flood Zone */}
-        <Polygon pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.4 }} positions={dynamicSevereZone}>
-          <Popup><span className="font-bold text-red-600">Severe Flood Zone (&gt;1m)</span></Popup>
-        </Polygon>
-
-        {/* Warning Zone */}
-        <Polygon pathOptions={{ color: 'orange', fillColor: 'orange', fillOpacity: 0.3 }} positions={dynamicWarningZone}>
-          <Popup><span className="font-bold text-orange-600">Warning Zone (0.5-1m)</span></Popup>
-        </Polygon>
-
-        {/* Safe Route */}
-        <Polyline pathOptions={{ color: 'green', weight: 4, dashArray: '10, 10' }} positions={dynamicSafeRoute}>
-          <Popup><span className="font-bold text-green-600">Safe Evacuation Route</span></Popup>
-        </Polyline>
-
-        {/* Shelters */}
-        {shelters.map((shelter) => (
-          <Marker key={shelter.id} position={[shelter.latitude, shelter.longitude]} icon={shelterIcon}>
-            <Popup>
-              <div className="p-1">
-                <h3 className="font-bold text-gray-900">{shelter.name}</h3>
-                <p className="text-sm text-gray-600 mb-1">Status: {shelter.available ? <span className="text-green-600">Available</span> : <span className="text-red-600">Full</span>}</p>
-                <p className="text-xs text-gray-500">Occupancy: {shelter.currentOccupancy} / {shelter.capacity}</p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-
-        {/* Sensors */}
-        {sensors.map((sensor) => (
-          <Marker key={sensor.id} position={[sensor.latitude, sensor.longitude]} icon={sensorIcon}>
-            <Popup>
-              <div className="p-1">
-                <h3 className="font-bold text-gray-900">{sensor.location}</h3>
-                <p className="text-sm text-gray-600 mb-1">Level: <span className="font-semibold">{sensor.value} {sensor.unit}</span></p>
-                <p className="text-xs text-gray-500">Last updated: {new Date(sensor.timestamp).toLocaleString()}</p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {/* Default state when no safety data */}
+        {!safetyData && (
+          <>
+            <Marker position={[13.0827, 80.2707]} icon={userIcon}>
+              <Popup>
+                <div className="p-1">
+                  <h3 className="font-bold text-gray-700">Chennai (Demo)</h3>
+                  <p className="text-xs text-gray-500">Run "Am I Safe?" from dashboard to see your personalized map.</p>
+                </div>
+              </Popup>
+            </Marker>
+            <RecenterAutomatically lat={13.0827} lng={80.2707} />
+          </>
+        )}
       </MapContainer>
     </div>
   );

@@ -19,6 +19,28 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const isDemoActive = process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || (typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'true');
+
+    if (isDemoActive) {
+      setUser({
+        uid: 'demo-user',
+        email: 'demo@floodrakshak.ai',
+        displayName: 'Demo Citizen',
+        getIdToken: async () => 'demo_token'
+      } as any);
+      setUserData({
+        name: 'Demo Citizen',
+        email: 'demo@floodrakshak.ai',
+        role: 'citizen',
+        district: 'Chennai',
+        language: 'english',
+        phoneNumber: '+919999999999',
+        telegramChatId: ''
+      });
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       

@@ -88,12 +88,14 @@ export class HydrologicalRadarAgent {
     const oneHourAgo = new Date(Date.now() - 3600 * 1000).toISOString();
     const rainfallSnap = await adminDb.collection('sensor_data')
       .where('sensorType', '==', 'rainfall')
-      .where('timestamp', '>', oneHourAgo)
       .get();
     
     let rainfallTotal = 0;
     rainfallSnap.forEach((doc: any) => {
-      rainfallTotal += doc.data().value || 0;
+      const data = doc.data();
+      if (data.timestamp > oneHourAgo) {
+        rainfallTotal += data.value || 0;
+      }
     });
     readings.rainfall = rainfallTotal;
 

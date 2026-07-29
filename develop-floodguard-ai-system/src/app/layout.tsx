@@ -5,8 +5,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { SessionProvider as SessionProviderWrapper } from '@/components/SessionProvider';
 
 export const metadata: Metadata = {
-  title: "FloodGuard AI - Autonomous Early Warning System",
-  description: "AI-powered flash flood prediction, evacuation planning, and emergency communication system",
+  title: "FloodRakshak AI - Personal Disaster Safety Assistant",
+  description: "AI-powered personal flood risk assessment, real-time weather analysis, and emergency Telegram alerts",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

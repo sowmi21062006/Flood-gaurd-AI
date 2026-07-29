@@ -17,14 +17,23 @@ export async function GET(request: NextRequest) {
       alertsRef = alertsRef.where('language', '==', language);
     }
 
-    const snapshot = await alertsRef.orderBy('createdAt', 'desc').limit(50).get();
+    // Limit to 100 to get a good dataset without overloading, then sort in-memory to prevent composite index requirement
+    const snapshot = await alertsRef.limit(100).get();
     
-    const allAlerts = snapshot.docs.map((doc: any) => ({
+    let allAlerts = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data()
     }));
 
-    return NextResponse.json({ success: true, data: allAlerts });
+    allAlerts.sort((a: any, b: any) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+
+    const resultAlerts = allAlerts.slice(0, 50);
+
+    return NextResponse.json({ success: true, data: resultAlerts });
   } catch (error) {
     console.error('Failed to fetch alerts', error);
     return NextResponse.json({ error: 'Failed to fetch alerts' }, { status: 500 });

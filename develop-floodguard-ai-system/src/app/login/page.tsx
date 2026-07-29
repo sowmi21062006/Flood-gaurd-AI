@@ -32,6 +32,16 @@ export default function LoginPage() {
     }
   };
 
+  const handleDemoBypass = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('demo_mode', 'true');
+    }
+    router.push('/dashboard');
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
+
   const handleGoogleSignIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
@@ -52,7 +62,7 @@ export default function LoginPage() {
             <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center font-bold text-2xl">
               🌊
             </div>
-            <span className="text-2xl font-bold">FloodGuard AI</span>
+            <span className="text-2xl font-bold">FloodRakshak AI</span>
           </div>
           <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
           <p className="text-blue-200">Sign in to access the emergency dashboard</p>
@@ -139,6 +149,13 @@ export default function LoginPage() {
                 />
               </svg>
               <span>Sign in with Google</span>
+            </button>
+
+            <button
+              onClick={handleDemoBypass}
+              className="mt-3 w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-semibold transition flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20"
+            >
+              <span>Enter Demo Dashboard (Bypass)</span>
             </button>
           </div>
 

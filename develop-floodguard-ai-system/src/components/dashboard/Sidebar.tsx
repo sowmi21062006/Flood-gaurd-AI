@@ -42,8 +42,15 @@ export function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (va
   const { user } = useAuth();
 
   const handleLogout = async () => {
-    const { auth } = await import('@/lib/firebase/config');
-    await auth.signOut();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('demo_mode');
+    }
+    try {
+      const { auth } = await import('@/lib/firebase/config');
+      await auth.signOut();
+    } catch (e) {
+      console.warn('Firebase signOut skipped or failed', e);
+    }
     router.push('/login');
   };
 
@@ -66,9 +73,9 @@ export function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (va
         <div className="flex h-16 items-center justify-between px-6 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center space-x-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-lg shadow-blue-500/30">
-              FG
+              FR
             </div>
-            <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">FloodGuard</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">FloodRakshak</span>
           </div>
           <button onClick={() => setIsOpen(false)} className="lg:hidden text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
             <Menu size={24} />

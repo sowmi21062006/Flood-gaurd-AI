@@ -4,7 +4,7 @@ import { adminAuth, adminDb } from '@/lib/firebase/admin';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password, role, district, language } = body;
+    const { name, email, password, role, district, language, phoneNumber, telegramChatId } = body;
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -38,6 +38,8 @@ export async function POST(request: NextRequest) {
       role: role || 'citizen',
       district: district || null,
       language: language || 'english',
+      phoneNumber: phoneNumber || '',
+      telegramChatId: telegramChatId || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

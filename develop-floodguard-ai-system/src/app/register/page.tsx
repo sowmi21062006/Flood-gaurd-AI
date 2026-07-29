@@ -15,6 +15,8 @@ export default function RegisterPage() {
     role: 'citizen',
     district: '',
     language: 'english',
+    phoneNumber: '',
+    telegramChatId: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,6 +39,14 @@ export default function RegisterPage() {
       return;
     }
 
+    const isDemoActive = process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || (typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'true');
+
+    if (isDemoActive) {
+      // In demo mode, bypass backend call and redirect
+      router.push('/login?registered=true');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -47,6 +57,8 @@ export default function RegisterPage() {
         role: formData.role,
         district: formData.district,
         language: formData.language,
+        phoneNumber: formData.phoneNumber,
+        telegramChatId: formData.telegramChatId,
       });
 
       router.push('/login?registered=true');
@@ -63,12 +75,12 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-2 mb-4">
             <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center font-bold text-2xl">
-              🌊
+              🛡️
             </div>
-            <span className="text-2xl font-bold">FloodGuard AI</span>
+            <span className="text-2xl font-bold">FloodRakshak AI</span>
           </div>
           <h1 className="text-3xl font-bold mb-2">Create Account</h1>
-          <p className="text-blue-200">Join the emergency response network</p>
+          <p className="text-blue-200">Register for personal flood safety alerts</p>
         </div>
 
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
@@ -193,6 +205,36 @@ export default function RegisterPage() {
                 <option value="telugu" className="bg-gray-800">Telugu</option>
                 <option value="malayalam" className="bg-gray-800">Malayalam</option>
               </select>
+            </div>
+
+            <div>
+              <label htmlFor="telegramChatId" className="block text-sm font-medium mb-2">
+                Telegram Chat ID (Optional)
+              </label>
+              <input
+                type="text"
+                id="telegramChatId"
+                name="telegramChatId"
+                value={formData.telegramChatId}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400"
+                placeholder="e.g. 123456789"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="phoneNumber" className="block text-sm font-medium mb-2">
+                Phone Number
+              </label>
+              <input
+                type="text"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400"
+                placeholder="e.g. +919876543210"
+              />
             </div>
 
             <button
