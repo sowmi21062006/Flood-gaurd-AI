@@ -1,10 +1,13 @@
 # dependencies
 node_modules/
-/develop-floodguard-ai-system/node_modules/
+/.pnp
+.pnp.js
+
+# testing
+/coverage
 
 # next.js
 .next/
-/develop-floodguard-ai-system/.next/
 out/
 
 # production
@@ -14,6 +17,8 @@ dist/
 # misc
 .DS_Store
 *.pem
+.ralphy/
+.agent/
 
 # debug
 npm-debug.log*
@@ -23,6 +28,9 @@ yarn-error.log*
 # local env files
 .env
 .env*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # typescript
 *.tsbuildinfo
